@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17
+    container_name: service-status-page-db
+    ports:
+      - "1234:5432"
+    volumes:
+      - db-store:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "0000"
+      POSTGRES_DB: "test"
+volumes:
+  db-store:

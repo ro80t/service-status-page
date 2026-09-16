@@ -1,0 +1,40 @@
+{
+  "name": "service-status-page",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "$npm_execpath run build && vite preview",
+    "deploy": "$npm_execpath run build && wrangler deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@hono/inertia": "^0.7.2",
+    "@inertiajs/core": "^3.7.1",
+    "@inertiajs/vue3": "^3.7.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.8",
+    "postgres": "^3.4.9",
+    "vue": "^3.5.42"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.44.0",
+    "@types/node": "^22.20.3",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vue/server-renderer": "^3.5.42",
+    "drizzle-kit": "^0.31.10",
+    "oxfmt": "^0.68.0",
+    "oxlint": "^1.83.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4",
+    "vite-ssr-components": "^0.8.0",
+    "wrangler": "^4.110.0"
+  }
+}

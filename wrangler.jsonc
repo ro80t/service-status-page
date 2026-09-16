@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "service-status-page",
+  "compatibility_date": "2025-08-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./app/server.ts",
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "<hyperdrive-id>",
+      "localConnectionString": "postgres://user:0000@localhost:1234/test",
+    },
+  ],
+  "triggers": {
+    // every minute: health check, hourly: stale-trigger + old-status cleanup
+    "crons": ["* * * * *", "0 * * * *"],
+  },
+}

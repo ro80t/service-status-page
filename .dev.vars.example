@@ -1,0 +1,3 @@
+# Cloudflare API token with Zone WAF (rulesets) edit permission,
+# used to toggle "auto:"-prefixed custom rules when a monitored site goes down.
+CLOUDFLARE_API_TOKEN=""
