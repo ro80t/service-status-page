@@ -25,23 +25,31 @@ const buildHistory = (statusRows: { date: Date; status: number[] }[]): ParsedSta
   return days;
 };
 
-const routes = app.get("/", async (c) => {
-  const db = createDb(c.env.HYPERDRIVE.connectionString);
-  const services = await Promise.all(
-    (await listWebsites(db)).map(async ({ domain, label }) => ({
-      domain,
-      label,
-      days: buildHistory(await listStatuses(db, domain)),
-    })),
-  );
-  const isUnstable = services.some(
-    (s) => s.days.at(-1) === "error" || s.days.at(-1) === "unstable",
-  );
-  return c.render("Home", {
-    pageStatusLabel: isUnstable ? "Some services are unstable." : "All services are working fine.",
-    services,
+const routes = app
+  .get("/", async (c) => {
+    const db = createDb(c.env.HYPERDRIVE.connectionString);
+    const services = await Promise.all(
+      (await listWebsites(db)).map(async ({ domain, label }) => ({
+        domain,
+        label,
+        days: buildHistory(await listStatuses(db, domain)),
+      })),
+    );
+    const isUnstable = services.some(
+      (s) => s.days.at(-1) === "error" || s.days.at(-1) === "unstable",
+    );
+    return c.render("Home", {
+      url: new URL(c.req.url).toString(),
+      pageStatusLabel: isUnstable
+        ? "Some services are unstable."
+        : "All services are working fine.",
+      services,
+    });
+  })
+  .all("*", (c) => {
+    c.status(404);
+    return c.render("Error404", { url: new URL(c.req.url).toString() });
   });
-});
 
 export default {
   fetch: routes.fetch,

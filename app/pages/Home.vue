@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { Head } from "@inertiajs/vue3";
 import Layout from "./Layout.vue";
 
 type ParsedStatus = "ok" | "unstable" | "error" | "unknown";
 
 defineProps<{
+  url: string;
   pageStatusLabel: string;
   services: { domain: string; label: string | null; days: ParsedStatus[] }[];
 }>();
 </script>
 
 <template>
-  <Layout>
-    <Head title="Status" />
+  <Layout title="Status" :url="url">
     <p class="page-status">{{ pageStatusLabel }}</p>
 
     <div class="services">
