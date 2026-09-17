@@ -5,6 +5,9 @@
     "": {
       "name": "service-status-page",
       "dependencies": {
+        "@fontsource/dela-gothic-one": "^5.3.0",
+        "@fontsource/kiwi-maru": "^5.3.0",
+        "@fontsource/m-plus-rounded-1c": "^5.3.0",
         "@hono/inertia": "^0.7.2",
         "@inertiajs/core": "^3.7.1",
         "@inertiajs/vue3": "^3.7.1",
@@ -124,6 +127,12 @@
     "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.25.12", "", { "os": "win32", "cpu": "ia32" }, "sha512-HkqnmmBoCbCwxUKKNPBixiWDGCpQGVsrQfJoVGYLPT41XWF8lHuE5N6WhVia2n4o5QK5M4tYr21827fNhi4byQ=="],
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.12", "", { "os": "win32", "cpu": "x64" }, "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="],
+
+    "@fontsource/dela-gothic-one": ["@fontsource/dela-gothic-one@5.3.0", "", {}, "sha512-4A26Qs7TqYFWegJfYHx7KKWy01YybW/e7uhFDM8A8e1neVPm721laLnh0en60wtKihfNdCbJt0VVcEMHC4pHjw=="],
+
+    "@fontsource/kiwi-maru": ["@fontsource/kiwi-maru@5.3.0", "", {}, "sha512-8zcSONeRZPzSWdkP+uoNoEVciJn985ZDB57zwRer9dGZ/1+/pnQYkyCz5OEbnoXvbFyVnA0Dx0r+lv6tu+wTGA=="],
+
+    "@fontsource/m-plus-rounded-1c": ["@fontsource/m-plus-rounded-1c@5.3.0", "", {}, "sha512-eB/JxJBRXLdfTsBDElsAZDMtHXM58Hf1tKkHoDVZAaUN7a+qYfwNKh4Q2f7Fk9YNg4xPFjTwooVlQyqbhi8CWQ=="],
 
     "@hono/inertia": ["@hono/inertia@0.7.2", "", { "peerDependencies": { "hono": ">=4.0.0", "vite": ">=5.0.0" }, "optionalPeers": ["vite"] }, "sha512-5c8/1k4gUdTr3XrzqJ1tG2bAZhcRiqfu6RBAzFKK1RJP5fr/PWsl3eo9AbcgYKnT+N1zmBeyHtNizJpWYrqpjQ=="],
 

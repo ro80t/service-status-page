@@ -10,6 +10,7 @@ const props = withDefaults(
     title?: string;
     description?: string;
     url: string;
+    version: string;
   }>(),
   {
     title: "Home",
@@ -39,11 +40,14 @@ const fullTitle = `${props.title} / ${SITE_NAME}`;
   <div class="app">
     <header>
       <nav>
-        <Link href="/">Home</Link>
+        <Link href="/">{{ SITE_NAME }}</Link>
       </nav>
     </header>
     <main>
       <slot />
     </main>
+    <footer>
+      <p>Powered by {{ SITE_NAME }}@{{ version }}</p>
+    </footer>
   </div>
 </template>

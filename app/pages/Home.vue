@@ -5,13 +5,14 @@ type ParsedStatus = "ok" | "unstable" | "error" | "unknown";
 
 defineProps<{
   url: string;
+  version: string;
   pageStatusLabel: string;
   services: { domain: string; label: string | null; days: ParsedStatus[] }[];
 }>();
 </script>
 
 <template>
-  <Layout title="Status" :url="url">
+  <Layout title="Status" :url="url" :version="version">
     <p class="page-status">{{ pageStatusLabel }}</p>
 
     <div class="services">
@@ -30,21 +31,27 @@ defineProps<{
 <style scoped>
 .page-status {
   text-align: center;
-  font-size: 20px;
+  font-family: var(--font-title);
+  font-size: 30px;
   font-weight: 600;
   margin: 8px 0 24px;
 }
 
 .services {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  overflow: hidden;
+  border-radius: 25px;
+  background: var(--card-bg);
+}
+
+.service {
+  width: 95%;
+  margin: 4px auto 10px auto;
 }
 
 .service .name {
-  font-weight: 700;
-  font-size: 18px;
-  margin: 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  margin: 8px 0 0;
 }
 
 .service .domain {
@@ -55,30 +62,33 @@ defineProps<{
 
 .history {
   display: grid;
-  grid-template-columns: repeat(90, minmax(3px, 1fr));
-  gap: 2px;
+  grid-template-columns: repeat(90, 1fr);
+  gap: 1px;
 }
 
 .history .day {
   height: 28px;
-  border-radius: 2px;
-  background: var(--border);
 }
 
 .history .day.ok {
-  background: #22c55e;
+  background: rgb(37, 255, 164);
 }
 
 .history .day.unstable {
-  background: #eab308;
+  background: yellow;
 }
 
 .history .day.error {
-  background: #ef4444;
+  background: red;
+}
+
+.history .day.unknown {
+  background: rgb(80, 80, 80);
 }
 
 .empty {
   text-align: center;
   color: var(--muted);
+  padding: 10px 0;
 }
 </style>

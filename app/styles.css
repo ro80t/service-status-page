@@ -1,11 +1,26 @@
+/* Only the Latin subsets, weight 400 — this UI is English-only, and the full
+   packages otherwise pull in dozens of unused CJK/Cyrillic/etc. subsets. */
+@import "@fontsource/dela-gothic-one/latin-400.css";
+@import "@fontsource/dela-gothic-one/latin-ext-400.css";
+@import "@fontsource/kiwi-maru/latin-400.css";
+@import "@fontsource/kiwi-maru/latin-ext-400.css";
+@import "@fontsource/m-plus-rounded-1c/latin-400.css";
+@import "@fontsource/m-plus-rounded-1c/latin-ext-400.css";
+
 :root {
-  --bg: #fafafa;
-  --fg: #1a1a1a;
-  --muted: #666;
-  --border: #e2e2e2;
-  --accent: #ff5b1f;
+  --bg: #1c1e24;
+  --fg: #f2f2f2;
+  --muted: #9aa0ab;
+  --border: #2d313d;
+  --accent: #37b6e4;
   --accent-fg: #fff;
+  --header-bg: rgb(44, 44, 44);
+  --footer-bg: #212227;
+  --card-bg: #2d313d;
   --radius: 6px;
+  --font-display: "Dela Gothic One", system-ui, sans-serif;
+  --font-title: "Kiwi Maru", serif;
+  --font-body: "M PLUS Rounded 1c", sans-serif;
 }
 
 * {
@@ -14,12 +29,7 @@
 
 body {
   margin: 0;
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
   color: var(--fg);
@@ -36,13 +46,44 @@ a:hover {
 }
 
 .app {
-  max-width: 720px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  background: var(--header-bg);
+}
+
+header nav {
+  padding: 10px 16px;
+  font-family: var(--font-display);
+  font-size: 26px;
+}
+
+main {
+  flex: 1;
+  max-width: 960px;
+  width: 100%;
   margin: 0 auto;
   padding: 24px;
+}
+
+footer {
+  background: var(--footer-bg);
+  padding: 6px 16px;
+  font-size: 13px;
+  text-align: center;
+}
+
+footer a {
+  color: #58d4e4;
 }
 
 h1 {
   margin: 0 0 16px;
   font-size: 28px;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-display);
 }

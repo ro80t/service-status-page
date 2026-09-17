@@ -1,5 +1,6 @@
 {
   "name": "service-status-page",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +17,9 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@fontsource/dela-gothic-one": "^5.3.0",
+    "@fontsource/kiwi-maru": "^5.3.0",
+    "@fontsource/m-plus-rounded-1c": "^5.3.0",
     "@hono/inertia": "^0.7.2",
     "@inertiajs/core": "^3.7.1",
     "@inertiajs/vue3": "^3.7.1",

@@ -6,6 +6,7 @@ import { checkAllWebsites } from "./lib/monitor";
 import type { ParsedStatus } from "./lib/status-check";
 import { summarizeDay } from "./lib/status-check";
 import { rootView } from "./root-view";
+import pkg from "../package.json";
 
 const HISTORY_DAYS = 90;
 const RETENTION_DAYS = 91;
@@ -40,6 +41,7 @@ const routes = app
     );
     return c.render("Home", {
       url: new URL(c.req.url).toString(),
+      version: pkg.version,
       pageStatusLabel: isUnstable
         ? "Some services are unstable."
         : "All services are working fine.",
@@ -48,7 +50,7 @@ const routes = app
   })
   .all("*", (c) => {
     c.status(404);
-    return c.render("Error404", { url: new URL(c.req.url).toString() });
+    return c.render("Error404", { url: new URL(c.req.url).toString(), version: pkg.version });
   });
 
 export default {
