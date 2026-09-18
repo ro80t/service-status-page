@@ -12,6 +12,11 @@ export default defineConfig({
   environments: {
     ssr: {
       build: {
+        // This phantom environment's own output is unused (see comment above) —
+        // its outDir defaults to the shared "dist" root, so without this it empties
+        // "dist" on its way in and wipes out the "client" environment's build
+        // (Vue bundle, CSS, fonts) that already ran before it.
+        emptyOutDir: false,
         rollupOptions: { input: "./app/server.ts" },
       },
     },

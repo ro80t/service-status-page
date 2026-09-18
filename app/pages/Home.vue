@@ -18,7 +18,7 @@ defineProps<{
     <div class="services">
       <div v-for="service in services" :key="service.domain" class="service">
         <p class="name">{{ service.label ?? service.domain }}</p>
-        <p class="domain">{{ service.domain }}</p>
+        <p class="domain">DOMAIN: {{ service.domain }}</p>
         <div class="history">
           <div v-for="(day, i) in service.days" :key="i" :class="['day', day]"></div>
         </div>
@@ -41,6 +41,8 @@ defineProps<{
   overflow: hidden;
   border-radius: 25px;
   background: var(--card-bg);
+  width: 90%;
+  margin: 16px auto;
 }
 
 .service {
@@ -55,8 +57,6 @@ defineProps<{
 }
 
 .service .domain {
-  color: var(--muted);
-  font-size: 13px;
   margin: 0 0 8px;
 }
 

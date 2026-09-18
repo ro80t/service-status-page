@@ -47,7 +47,12 @@ const fullTitle = `${props.title} / ${SITE_NAME}`;
       <slot />
     </main>
     <footer>
-      <p>Powered by {{ SITE_NAME }}@{{ version }}</p>
+      <p>
+        Powered by
+        <a href="https://github.com/ro80t/service-status-page" target="_blank" rel="noopener noreferrer"
+          >{{ SITE_NAME }}@{{ version }}</a
+        >
+      </p>
     </footer>
   </div>
 </template>

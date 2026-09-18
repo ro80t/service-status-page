@@ -8,7 +8,7 @@
 @import "@fontsource/m-plus-rounded-1c/latin-ext-400.css";
 
 :root {
-  --bg: #1c1e24;
+  --bg: rgb(22, 28, 38);
   --fg: #f2f2f2;
   --muted: #9aa0ab;
   --border: #2d313d;
@@ -58,22 +58,19 @@ header {
 }
 
 header nav {
-  padding: 10px 16px;
+  padding: 10px;
   font-family: var(--font-display);
   font-size: 26px;
 }
 
 main {
   flex: 1;
-  max-width: 960px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 24px;
+  overflow: hidden;
 }
 
 footer {
   background: var(--footer-bg);
-  padding: 6px 16px;
+  padding: 3px 5px;
   font-size: 13px;
   text-align: center;
 }
