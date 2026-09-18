@@ -27,6 +27,7 @@ drizzle/        Generated SQL migrations (commit these)
    bun run lint
    bun run format
    ```
+   `.github/workflows/ci.yml` runs the same checks (plus `build`) on every push/PR; a `deploy` job then migrates and deploys automatically on push to `main`. There is normally no reason to run `bun run deploy` by hand — see [README.md](README.md#cicd) for the required repo secrets.
 
 ## Schema changes
 

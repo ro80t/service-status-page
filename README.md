@@ -36,13 +36,13 @@ There is no admin UI; rows are inserted directly into the database.
 
 To auto-lock a zone when a site is down, create a Cloudflare custom rule whose description starts with `auto:` — the health check will flip its `enabled` flag on failure and back off on recovery.
 
-## Cloudflare API token
+## Cloudflare API token (runtime)
 
-Issue a Zone-scoped token that can edit WAF custom rulesets, then set it:
+This is the token the deployed Worker itself uses to edit WAF custom rulesets — separate from the deploy-time token used by CI (see below). Issue a Zone-scoped token that can edit WAF custom rulesets, then set it:
 
 ```txt
 cp .dev.vars.example .dev.vars   # local dev
-wrangler secret put CLOUDFLARE_API_TOKEN   # production
+wrangler secret put CLOUDFLARE_API_TOKEN   # production, one-time — not managed by CI
 ```
 
 ## Production database (Neon + Hyperdrive)
@@ -52,17 +52,34 @@ wrangler secret put CLOUDFLARE_API_TOKEN   # production
    ```txt
    wrangler hyperdrive create <name> --connection-string="postgres://..."
    ```
-3. Run migrations directly against Neon (Hyperdrive is only used by the deployed Worker, not by drizzle-kit):
+3. Add the connection string as the `DATABASE_URL` GitHub Actions secret (see below) so CI can migrate it, or run it manually:
    ```txt
    DATABASE_URL="postgres://..." bun run db:migrate
    ```
+
+## CI/CD
+
+`.github/workflows/ci.yml` runs on every push and pull request:
+
+- **`ci`** — typecheck, lint, format check, build. Runs for all pushes and PRs.
+- **`deploy`** — runs only on push to `main`, after `ci` passes: applies pending migrations to `DATABASE_URL`, then `bun run deploy` (build + `wrangler deploy`).
+
+Configure these repository secrets for the `deploy` job to work:
+
+| Secret                  | Used for                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`          | Direct Neon connection string, for `drizzle-kit migrate`                                                           |
+| `CLOUDFLARE_API_TOKEN`  | Deploy auth for the `wrangler` CLI (needs Workers Scripts edit permission) — distinct from the runtime token above |
+| `CLOUDFLARE_ACCOUNT_ID` | Account the Worker is deployed to                                                                                  |
+
+The runtime `CLOUDFLARE_API_TOKEN` Worker secret (previous section) is set once via `wrangler secret put` and is intentionally not managed by CI.
 
 ## Scripts
 
 ```txt
 bun run dev          # local dev (Vite + Cloudflare Workers runtime)
 bun run build         # production build
-bun run deploy        # build + wrangler deploy
+bun run deploy        # build + wrangler deploy (normally run by the `deploy` CI job, not by hand)
 bun run cf-typegen    # regenerate CloudflareBindings types from wrangler.jsonc
 bun run db:generate   # generate a migration from schema changes
 bun run db:migrate    # apply migrations to DATABASE_URL
