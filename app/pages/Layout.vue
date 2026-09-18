@@ -49,7 +49,10 @@ const fullTitle = `${props.title} / ${SITE_NAME}`;
     <footer>
       <p>
         Powered by
-        <a href="https://github.com/ro80t/service-status-page" target="_blank" rel="noopener noreferrer"
+        <a
+          href="https://github.com/ro80t/service-status-page"
+          target="_blank"
+          rel="noopener noreferrer"
           >{{ SITE_NAME }}@{{ version }}</a
         >
       </p>
