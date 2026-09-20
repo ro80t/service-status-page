@@ -48,6 +48,18 @@ const routes = app
       services,
     });
   })
+  .get("/robots.txt", (c) => {
+    const origin = new URL(c.req.url).origin;
+    return c.text(`User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`);
+  })
+  .get("/sitemap.xml", (c) => {
+    const origin = new URL(c.req.url).origin;
+    return c.body(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${origin}/</loc>\n  </url>\n</urlset>\n`,
+      200,
+      { "Content-Type": "application/xml" },
+    );
+  })
   .all("*", (c) => {
     c.status(404);
     return c.render("Error404", { url: new URL(c.req.url).toString(), version: pkg.version });
