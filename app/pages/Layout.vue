@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from "@inertiajs/vue3";
 
-const SITE_NAME = "service-status-page";
+const SITE_NAME = "ro80t's status";
 const DEFAULT_DESCRIPTION =
   "Continuous uptime monitoring with automatic Cloudflare lockdown on outages.";
 
