@@ -1,4 +1,4 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, lt, lte } from "drizzle-orm";
 import type { Db } from "./client";
 import { apis, statuses, triggers, websites } from "./schema";
 
@@ -36,7 +36,7 @@ export const recordStatus = async (db: Db, domain: string, status: number) => {
 };
 
 export const removeOldStatuses = (db: Db, before: Date) =>
-  db.delete(statuses).where(lte(statuses.date, before));
+  db.delete(statuses).where(lt(statuses.date, before));
 
 export const findTrigger = (db: Db, domain: string) =>
   db

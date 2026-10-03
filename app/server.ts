@@ -9,7 +9,10 @@ import { rootView } from "./root-view";
 import pkg from "../package.json";
 
 const HISTORY_DAYS = 90;
-const RETENTION_DAYS = 91;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// 画面に出る最古の日付。これより前は表示されないので削除対象。
+const oldestVisibleDate = () => new Date(todayDate().getTime() - (HISTORY_DAYS - 1) * DAY_MS);
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -17,11 +20,10 @@ app.use(inertia({ rootView }));
 
 const buildHistory = (statusRows: { date: Date; status: number[] }[]): ParsedStatus[] => {
   const byDate = new Map(statusRows.map((row) => [row.date.getTime(), summarizeDay(row.status)]));
-  const today = todayDate();
+  const oldest = oldestVisibleDate();
   const days: ParsedStatus[] = [];
-  for (let i = HISTORY_DAYS - 1; i >= 0; i--) {
-    const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-    days.push(byDate.get(date.getTime()) ?? "unknown");
+  for (let i = 0; i < HISTORY_DAYS; i++) {
+    days.push(byDate.get(oldest.getTime() + i * DAY_MS) ?? "unknown");
   }
   return days;
 };
@@ -70,8 +72,7 @@ export default {
   scheduled: async (event: ScheduledController, env: CloudflareBindings) => {
     const db = createDb(env.HYPERDRIVE.connectionString);
     if (event.cron === "0 * * * *") {
-      const expiration = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-      await removeOldStatuses(db, expiration);
+      await removeOldStatuses(db, oldestVisibleDate());
     }
     await checkAllWebsites(db, env.CLOUDFLARE_API_TOKEN);
   },
