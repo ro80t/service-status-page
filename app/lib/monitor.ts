@@ -8,10 +8,12 @@ import {
   recordStatus,
   removeTrigger,
 } from "../db/repo";
-import { getRuleset, listRulesets, setRuleEnabled } from "./cloudflare";
+import { getRuleset, listRulesets, recentBlockRatio, setRuleEnabled } from "./cloudflare";
 import { checkUrl } from "./status-check";
 
 const RULE_PREFIX = "auto:";
+const ATTACK_CHECK_WINDOW_MINUTES = 5;
+const ATTACK_BLOCK_RATIO_THRESHOLD = 0.05; // ponytail: 5% default, tune against real traffic
 
 export const changeRule = async (apiToken: string, zoneId: string, enabled: boolean) => {
   for (const { id: rulesetId } of await listRulesets(apiToken, zoneId)) {
@@ -29,6 +31,16 @@ export const checkAllWebsites = async (db: Db, apiToken: string) => {
 
   for (const { domain, url, zoneId } of await listWebsites(db)) {
     const trigger = await findTrigger(db, domain);
+
+    if (trigger) {
+      const ratio = await recentBlockRatio(apiToken, zoneId, ATTACK_CHECK_WINDOW_MINUTES);
+      if (ratio <= ATTACK_BLOCK_RATIO_THRESHOLD) {
+        await changeRule(apiToken, zoneId, false);
+        await removeTrigger(db, domain);
+      }
+      continue;
+    }
+
     const targets = (await listApis(db, domain)).concat({
       domain,
       url,
@@ -50,12 +62,9 @@ export const checkAllWebsites = async (db: Db, apiToken: string) => {
       if (!result.ok) anyFailing = true;
     }
 
-    if (anyFailing && !trigger) {
+    if (anyFailing) {
       await changeRule(apiToken, zoneId, true);
       await insertTrigger(db, domain);
-    } else if (!anyFailing && trigger) {
-      await changeRule(apiToken, zoneId, false);
-      await removeTrigger(db, domain);
     }
   }
 };

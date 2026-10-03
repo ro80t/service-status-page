@@ -49,3 +49,40 @@ export const setRuleEnabled = (
       description: rule.description,
     }),
   });
+
+// ponytail: zone-wide block/challenge ratio, not scoped to our auto: rules specifically.
+// Narrow with a ruleId filter if that turns out too noisy.
+export const recentBlockRatio = async (apiToken: string, zoneId: string, sinceMinutes: number) => {
+  const since = new Date(Date.now() - sinceMinutes * 60 * 1000).toISOString();
+  const response = await fetch("https://api.cloudflare.com/client/v4/graphql", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: `query($zoneTag: String!, $since: Time!) {
+        viewer {
+          zones(filter: { zoneTag: $zoneTag }) {
+            blocked: firewallEventsAdaptiveGroups(
+              filter: { datetime_geq: $since, action_in: ["block", "challenge", "managed_challenge", "js_challenge"] }
+              limit: 1
+            ) { count }
+            total: httpRequestsAdaptiveGroups(filter: { datetime_geq: $since }, limit: 1) { count }
+          }
+        }
+      }`,
+      variables: { zoneTag: zoneId, since },
+    }),
+  });
+  // fail-safe: unknown ratio must not look "below threshold"
+  if (!response.ok) return Number.POSITIVE_INFINITY;
+  const body = (await response.json()) as {
+    data?: {
+      viewer?: {
+        zones?: { blocked?: { count: number }[]; total?: { count: number }[] }[];
+      };
+    };
+  };
+  const zone = body.data?.viewer?.zones?.[0];
+  const blocked = zone?.blocked?.[0]?.count ?? 0;
+  const total = zone?.total?.[0]?.count ?? 0;
+  return total > 0 ? blocked / total : 0;
+};
