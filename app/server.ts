@@ -9,7 +9,11 @@ import { rootView } from "./root-view";
 import pkg from "../package.json";
 
 const HISTORY_DAYS = 90;
-const RETENTION_DAYS = 91;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 60 * 1000;
+
+// 画面に出る最古の日付。これより前は表示されないので削除対象。
+const oldestVisibleDate = () => new Date(todayDate().getTime() - (HISTORY_DAYS - 1) * DAY_MS);
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -17,25 +21,44 @@ app.use(inertia({ rootView }));
 
 const buildHistory = (statusRows: { date: Date; status: number[] }[]): ParsedStatus[] => {
   const byDate = new Map(statusRows.map((row) => [row.date.getTime(), summarizeDay(row.status)]));
-  const today = todayDate();
+  const oldest = oldestVisibleDate();
   const days: ParsedStatus[] = [];
-  for (let i = HISTORY_DAYS - 1; i >= 0; i--) {
-    const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-    days.push(byDate.get(date.getTime()) ?? "unknown");
+  for (let i = 0; i < HISTORY_DAYS; i++) {
+    days.push(byDate.get(oldest.getTime() + i * DAY_MS) ?? "unknown");
   }
   return days;
 };
 
+const fetchServices = async (connectionString: string) => {
+  const db = createDb(connectionString);
+  return Promise.all(
+    (await listWebsites(db)).map(async ({ domain, label }) => ({
+      domain,
+      label,
+      days: buildHistory(await listStatuses(db, domain)),
+    })),
+  );
+};
+
+// ponytail: isolate単位のメモリキャッシュ。コロ間で共有したくなったらCache API/KVへ
+let cache: { at: number; services: ReturnType<typeof fetchServices> } | null = null;
+
+// 監視cronは1分間隔なので、同じTTLならDB接続とN+1クエリをまるごと省ける。
+const loadServices = (connectionString: string) => {
+  if (!cache || Date.now() - cache.at >= CACHE_TTL_MS) {
+    const entry = { at: Date.now(), services: fetchServices(connectionString) };
+    // 失敗を60秒キャッシュして画面を落とさないよう、エラー時は即破棄する。
+    entry.services.catch(() => {
+      if (cache === entry) cache = null;
+    });
+    cache = entry;
+  }
+  return cache.services;
+};
+
 const routes = app
   .get("/", async (c) => {
-    const db = createDb(c.env.HYPERDRIVE.connectionString);
-    const services = await Promise.all(
-      (await listWebsites(db)).map(async ({ domain, label }) => ({
-        domain,
-        label,
-        days: buildHistory(await listStatuses(db, domain)),
-      })),
-    );
+    const services = await loadServices(c.env.HYPERDRIVE.connectionString);
     const isUnstable = services.some(
       (s) => s.days.at(-1) === "error" || s.days.at(-1) === "unstable",
     );
@@ -70,8 +93,7 @@ export default {
   scheduled: async (event: ScheduledController, env: CloudflareBindings) => {
     const db = createDb(env.HYPERDRIVE.connectionString);
     if (event.cron === "0 * * * *") {
-      const expiration = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-      await removeOldStatuses(db, expiration);
+      await removeOldStatuses(db, oldestVisibleDate());
     }
     await checkAllWebsites(db, env.CLOUDFLARE_API_TOKEN);
   },
