@@ -39,6 +39,6 @@
     "typescript": "^7.0.2",
     "vite": "^8.1.4",
     "vite-ssr-components": "^0.8.0",
-    "wrangler": "^4.110.0"
+    "wrangler": "^4.135.0"
   }
 }
