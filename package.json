@@ -26,7 +26,7 @@
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.8",
     "postgres": "^3.4.9",
-    "vue": "^3.5.42"
+    "vue": "^3.5.43"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.62.3",
