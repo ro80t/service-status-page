@@ -12,7 +12,7 @@ const HISTORY_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CACHE_TTL_MS = 60 * 1000;
 
-// 画面に出る最古の日付。これより前は表示されないので削除対象。
+// Oldest date the page shows. Anything before this is invisible, so it gets deleted.
 const oldestVisibleDate = () => new Date(todayDate().getTime() - (HISTORY_DAYS - 1) * DAY_MS);
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
@@ -40,14 +40,15 @@ const fetchServices = async (connectionString: string) => {
   );
 };
 
-// ponytail: isolate単位のメモリキャッシュ。コロ間で共有したくなったらCache API/KVへ
+// ponytail: per-isolate in-memory cache, Cache API/KV if it needs sharing across colos
 let cache: { at: number; services: ReturnType<typeof fetchServices> } | null = null;
 
-// 監視cronは1分間隔なので、同じTTLならDB接続とN+1クエリをまるごと省ける。
+// The monitoring cron runs every minute, so a matching TTL skips the DB connection
+// and the per-domain queries entirely without serving staler data.
 const loadServices = (connectionString: string) => {
   if (!cache || Date.now() - cache.at >= CACHE_TTL_MS) {
     const entry = { at: Date.now(), services: fetchServices(connectionString) };
-    // 失敗を60秒キャッシュして画面を落とさないよう、エラー時は即破棄する。
+    // Drop a failed fetch right away rather than caching the error for a minute.
     entry.services.catch(() => {
       if (cache === entry) cache = null;
     });
