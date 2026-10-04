@@ -10,6 +10,7 @@ import pkg from "../package.json";
 
 const HISTORY_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 60 * 1000;
 
 // 画面に出る最古の日付。これより前は表示されないので削除対象。
 const oldestVisibleDate = () => new Date(todayDate().getTime() - (HISTORY_DAYS - 1) * DAY_MS);
@@ -28,16 +29,36 @@ const buildHistory = (statusRows: { date: Date; status: number[] }[]): ParsedSta
   return days;
 };
 
+const fetchServices = async (connectionString: string) => {
+  const db = createDb(connectionString);
+  return Promise.all(
+    (await listWebsites(db)).map(async ({ domain, label }) => ({
+      domain,
+      label,
+      days: buildHistory(await listStatuses(db, domain)),
+    })),
+  );
+};
+
+// ponytail: isolate単位のメモリキャッシュ。コロ間で共有したくなったらCache API/KVへ
+let cache: { at: number; services: ReturnType<typeof fetchServices> } | null = null;
+
+// 監視cronは1分間隔なので、同じTTLならDB接続とN+1クエリをまるごと省ける。
+const loadServices = (connectionString: string) => {
+  if (!cache || Date.now() - cache.at >= CACHE_TTL_MS) {
+    const entry = { at: Date.now(), services: fetchServices(connectionString) };
+    // 失敗を60秒キャッシュして画面を落とさないよう、エラー時は即破棄する。
+    entry.services.catch(() => {
+      if (cache === entry) cache = null;
+    });
+    cache = entry;
+  }
+  return cache.services;
+};
+
 const routes = app
   .get("/", async (c) => {
-    const db = createDb(c.env.HYPERDRIVE.connectionString);
-    const services = await Promise.all(
-      (await listWebsites(db)).map(async ({ domain, label }) => ({
-        domain,
-        label,
-        days: buildHistory(await listStatuses(db, domain)),
-      })),
-    );
+    const services = await loadServices(c.env.HYPERDRIVE.connectionString);
     const isUnstable = services.some(
       (s) => s.days.at(-1) === "error" || s.days.at(-1) === "unstable",
     );
