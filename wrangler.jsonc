@@ -12,7 +12,8 @@
     },
   ],
   "triggers": {
-    // every minute: health check, hourly: stale-trigger + old-status cleanup
+    // every minute: health check (buffered in cache, pushed to the DB every 10 minutes),
+    // hourly: old-status cleanup
     "crons": ["* * * * *", "0 * * * *"],
   },
 }
