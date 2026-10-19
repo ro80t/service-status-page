@@ -10,7 +10,7 @@ import pkg from "../package.json";
 
 const HISTORY_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const CACHE_TTL_MS = 60 * 1000;
+const CACHE_TTL_MS = 10 * 60 * 1000;
 
 // Oldest date the page shows. Anything before this is invisible, so it gets deleted.
 const oldestVisibleDate = () => new Date(todayDate().getTime() - (HISTORY_DAYS - 1) * DAY_MS);
@@ -43,7 +43,7 @@ const fetchServices = async (connectionString: string) => {
 // ponytail: per-isolate in-memory cache, Cache API/KV if it needs sharing across colos
 let cache: { at: number; services: ReturnType<typeof fetchServices> } | null = null;
 
-// The monitoring cron runs every minute, so a matching TTL skips the DB connection
+// The monitoring cron writes every 10 minutes, so a matching TTL skips the DB connection
 // and the per-domain queries entirely without serving staler data.
 const loadServices = (connectionString: string) => {
   if (!cache || Date.now() - cache.at >= CACHE_TTL_MS) {
@@ -95,6 +95,7 @@ export default {
     const db = createDb(env.HYPERDRIVE.connectionString);
     if (event.cron === "0 * * * *") {
       await removeOldStatuses(db, oldestVisibleDate());
+      return;
     }
     await checkAllWebsites(db, env.CLOUDFLARE_API_TOKEN);
   },
