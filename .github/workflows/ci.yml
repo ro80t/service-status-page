@@ -37,6 +37,8 @@ jobs:
     concurrency: production-deploy
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -45,8 +47,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Only touch the DB when a migration changed, so deploys don't wake Neon (or fail on its quota).
       - name: Run database migrations
-        run: bun run db:migrate
+        run: git diff --quiet HEAD^ HEAD -- drizzle || bun run db:migrate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
