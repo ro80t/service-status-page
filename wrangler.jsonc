@@ -11,8 +11,12 @@
       "localConnectionString": "postgres://user:0000@localhost:1234/test",
     },
   ],
+  "durable_objects": {
+    "bindings": [{ "name": "MONITOR_STATE", "class_name": "MonitorState" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MonitorState"] }],
   "triggers": {
-    // every minute: health check (buffered in cache, pushed to the DB every 10 minutes),
+    // every minute: health check (buffered in a Durable Object; DB write every 15 minutes),
     // hourly: old-status cleanup
     "crons": ["* * * * *", "0 * * * *"],
   },

@@ -1,7 +1,17 @@
 import type { Db } from "../db/client";
-import { listApis, listTriggers, listWebsites, recordStatus, replaceTriggers } from "../db/repo";
+import {
+  listApis,
+  listStatuses,
+  listTriggers,
+  listWebsites,
+  recordStatus,
+  replaceTriggers,
+  todayDate,
+} from "../db/repo";
+import type { MonitorState, Site, State } from "./monitor-state";
 import { getRuleset, listRulesets, recentBlockRatio, setRuleEnabled } from "./cloudflare";
-import { checkUrl } from "./status-check";
+import type { ParsedStatus } from "./status-check";
+import { checkUrl, summarizeDay } from "./status-check";
 
 const RULE_PREFIX = "auto:";
 const ATTACK_CHECK_WINDOW_MINUTES = 5;
@@ -18,45 +28,69 @@ export const changeRule = async (apiToken: string, zoneId: string, enabled: bool
   }
 };
 
-const FLUSH_INTERVAL_MS = 10 * 60 * 1000;
+export const FLUSH_INTERVAL_MS = 15 * 60 * 1000;
 const TRIGGER_TTL_MS = 60 * 60 * 1000;
-const STATE_URL = "https://state.internal/monitor";
+const SERVICES_URL = "https://status.ro80t.com/internal/services";
+const HISTORY_DAYS = 90;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-type Target = {
-  url: string;
-  method: string | null;
-  header: Record<string, string> | null;
-  body: unknown;
-};
-type Site = { domain: string; url: string; zoneId: string; apis: Target[] };
-// Everything the per-minute cron needs, so it only touches the DB on a flush.
-type State = {
-  sites: Site[];
-  triggers: Record<string, number>; // domain -> limit (ms)
-  pending: Record<string, number[]>; // statuses not yet pushed to the DB
-  flushedAt: number;
-};
+type Service = { domain: string; label: string | null; days: ParsedStatus[] };
 
 // ponytail: Cache API is per-colo and evictable, and a no-op on workers.dev. A miss just
-// means an immediate flush (= the old behaviour); move to a Durable Object if it must be exact.
-const loadState = async (): Promise<State | null> =>
-  (await (caches as unknown as { default: Cache }).default.match(STATE_URL))?.json<State>() ?? null;
+// means an immediate DB round trip, which is fine for data that can be rebuilt from it.
+const servicesCache = () => (caches as unknown as { default: Cache }).default;
 
-const saveState = (state: State) =>
-  (caches as unknown as { default: Cache }).default.put(
-    STATE_URL,
-    Response.json(state, { headers: { "Cache-Control": "max-age=86400" } }),
+// Oldest date the page shows. Anything before this is invisible, so it gets deleted.
+export const oldestVisibleDate = () =>
+  new Date(todayDate().getTime() - (HISTORY_DAYS - 1) * DAY_MS);
+
+const buildHistory = (statusRows: { date: Date; status: number[] }[]): ParsedStatus[] => {
+  const byDate = new Map(statusRows.map((row) => [row.date.getTime(), summarizeDay(row.status)]));
+  const oldest = oldestVisibleDate();
+  const days: ParsedStatus[] = [];
+  for (let i = 0; i < HISTORY_DAYS; i++) {
+    days.push(byDate.get(oldest.getTime() + i * DAY_MS) ?? "unknown");
+  }
+  return days;
+};
+
+export const readCachedServices = async () =>
+  (await servicesCache().match(SERVICES_URL))?.json<Service[]>() ?? null;
+
+// Page data lives for one flush interval. The cron only refills its own colo, so other
+// colos fall back to this on a miss.
+export const refreshServices = async (db: Db): Promise<Service[]> => {
+  const services = await Promise.all(
+    (await listWebsites(db)).map(async ({ domain, label }) => ({
+      domain,
+      label,
+      days: buildHistory(await listStatuses(db, domain)),
+    })),
   );
+  await servicesCache().put(
+    SERVICES_URL,
+    Response.json(services, {
+      headers: { "Cache-Control": `max-age=${FLUSH_INTERVAL_MS / 1000}` },
+    }),
+  );
+  return services;
+};
 
 const loadSites = async (db: Db): Promise<Site[]> =>
   Promise.all(
     (await listWebsites(db)).map(async (w) => ({ ...w, apis: await listApis(db, w.domain) })),
   );
 
-// Runs every minute; statuses are buffered in the cache and written to the DB every 10 minutes.
-export const checkAllWebsites = async (db: Db, apiToken: string) => {
-  const now = Date.now();
-  let state = await loadState();
+// Runs every minute; statuses are buffered in the Durable Object, and every 15 minutes they are
+// written to the DB, then the site list and page cache are refreshed from it. `now` is the cron's exact scheduled time, so
+// run-to-run jitter can't push a flush back a minute.
+export const checkAllWebsites = async (
+  db: Db,
+  apiToken: string,
+  now: number,
+  store: DurableObjectStub<MonitorState>,
+) => {
+  let state = (await store.load()) as State | undefined;
   if (!state) {
     state = {
       sites: await loadSites(db),
@@ -107,10 +141,12 @@ export const checkAllWebsites = async (db: Db, apiToken: string) => {
       db,
       Object.entries(state.triggers).map(([domain, limit]) => ({ domain, limit: new Date(limit) })),
     );
-    state.sites = await loadSites(db); // pick up config changes
     state.pending = {};
     state.flushedAt = now;
+    await store.save(state); // a failed refresh below must not push these statuses twice
+    state.sites = await loadSites(db); // pick up config changes
+    await refreshServices(db);
   }
 
-  await saveState(state);
+  await store.save(state);
 };

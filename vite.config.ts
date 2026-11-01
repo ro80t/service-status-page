@@ -17,7 +17,7 @@ export default defineConfig({
         // "dist" on its way in and wipes out the "client" environment's build
         // (Vue bundle, CSS, fonts) that already ran before it.
         emptyOutDir: false,
-        rollupOptions: { input: "./app/server.ts" },
+        rollupOptions: { input: "./app/server.ts", external: ["cloudflare:workers"] },
       },
     },
   },
