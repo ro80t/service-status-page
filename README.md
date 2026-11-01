@@ -11,6 +11,7 @@ A status page that health-checks registered websites and automatically locks dow
 - ORM: [Drizzle ORM](https://orm.drizzle.team/) (`postgres-js` driver)
 - Database: Postgres. In production this is [Neon](https://neon.tech/) accessed through [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) — Hyperdrive hides the actual provider, so the app code just talks to plain Postgres
 - Scheduling: [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) (the Worker's `scheduled` handler — no external scheduler like trigger.dev)
+- Buffering: check results stay in a [Durable Object](https://developers.cloudflare.com/durable-objects/) and reach the database every 15 minutes
 
 ## Quick start
 

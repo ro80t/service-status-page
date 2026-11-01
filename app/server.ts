@@ -1,52 +1,31 @@
 import { Hono } from "hono";
 import { inertia } from "@hono/inertia";
 import { createDb } from "./db/client";
-import { listStatuses, listWebsites, removeOldStatuses, todayDate } from "./db/repo";
-import { checkAllWebsites } from "./lib/monitor";
-import type { ParsedStatus } from "./lib/status-check";
-import { summarizeDay } from "./lib/status-check";
+import { removeOldStatuses } from "./db/repo";
+import {
+  checkAllWebsites,
+  FLUSH_INTERVAL_MS,
+  oldestVisibleDate,
+  readCachedServices,
+  refreshServices,
+} from "./lib/monitor";
+export { MonitorState } from "./lib/monitor-state";
 import { rootView } from "./root-view";
 import pkg from "../package.json";
-
-const HISTORY_DAYS = 90;
-const DAY_MS = 24 * 60 * 60 * 1000;
-const CACHE_TTL_MS = 10 * 60 * 1000;
-
-// Oldest date the page shows. Anything before this is invisible, so it gets deleted.
-const oldestVisibleDate = () => new Date(todayDate().getTime() - (HISTORY_DAYS - 1) * DAY_MS);
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 app.use(inertia({ rootView }));
 
-const buildHistory = (statusRows: { date: Date; status: number[] }[]): ParsedStatus[] => {
-  const byDate = new Map(statusRows.map((row) => [row.date.getTime(), summarizeDay(row.status)]));
-  const oldest = oldestVisibleDate();
-  const days: ParsedStatus[] = [];
-  for (let i = 0; i < HISTORY_DAYS; i++) {
-    days.push(byDate.get(oldest.getTime() + i * DAY_MS) ?? "unknown");
-  }
-  return days;
-};
+const fetchServices = async (connectionString: string) =>
+  (await readCachedServices()) ?? refreshServices(createDb(connectionString));
 
-const fetchServices = async (connectionString: string) => {
-  const db = createDb(connectionString);
-  return Promise.all(
-    (await listWebsites(db)).map(async ({ domain, label }) => ({
-      domain,
-      label,
-      days: buildHistory(await listStatuses(db, domain)),
-    })),
-  );
-};
-
-// ponytail: per-isolate in-memory cache, Cache API/KV if it needs sharing across colos
+// ponytail: per-isolate layer on top of the Cache API, so a page can lag the DB by up to two
+// intervals. It keeps a request from hitting the DB when the Cache API misses or is a no-op.
 let cache: { at: number; services: ReturnType<typeof fetchServices> } | null = null;
 
-// The monitoring cron writes every 10 minutes, so a matching TTL skips the DB connection
-// and the per-domain queries entirely without serving staler data.
 const loadServices = (connectionString: string) => {
-  if (!cache || Date.now() - cache.at >= CACHE_TTL_MS) {
+  if (!cache || Date.now() - cache.at >= FLUSH_INTERVAL_MS) {
     const entry = { at: Date.now(), services: fetchServices(connectionString) };
     // Drop a failed fetch right away rather than caching the error for a minute.
     entry.services.catch(() => {
@@ -97,6 +76,7 @@ export default {
       await removeOldStatuses(db, oldestVisibleDate());
       return;
     }
-    await checkAllWebsites(db, env.CLOUDFLARE_API_TOKEN);
+    const store = env.MONITOR_STATE.get(env.MONITOR_STATE.idFromName("monitor"));
+    await checkAllWebsites(db, env.CLOUDFLARE_API_TOKEN, event.scheduledTime, store);
   },
 };
