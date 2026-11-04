@@ -35,7 +35,7 @@
     "@vue/server-renderer": "^3.5.42",
     "drizzle-kit": "^0.31.11",
     "oxfmt": "^0.71.0",
-    "oxlint": "^1.83.0",
+    "oxlint": "^1.90.0",
     "typescript": "^7.0.2",
     "vite": "^8.1.4",
     "vite-ssr-components": "^0.8.0",
